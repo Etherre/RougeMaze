@@ -15,15 +15,14 @@ import java.util.Random;
 public class WorldGenerator {
 	// 房间类型列表，可以在此添加新的房间类型
 	private static final List<Class<? extends BaseRoom>> ROOM_TYPES = new ArrayList<>();
-
+	
 	// 初始化房间类型列表
 	static {
 		ROOM_TYPES.add(BaseRoom.class);
 		ROOM_TYPES.add(MazeRoom.class);
-		// 可以继续添加更多房间类型
-		// ROOM_TYPES.add(CustomRoom.class);
+		// 可继续添加更多房间类型
 	}
-
+	
 	// 维护一个房间二维数组，用于保存世界地图
 	public final BaseRoom[][] worldMap;
 	private final Random random;
@@ -90,13 +89,6 @@ public class WorldGenerator {
 		}
 	}
 	
-	/**
-	 * 为相邻房间创建对齐的门
-	 *
-	 * @param room1     第一个房间
-	 * @param room2     第二个房间
-	 * @param direction 从room1到room2的方向
-	 */
 	private void createAlignedGates(BaseRoom room1, BaseRoom room2, Direction direction) {
 		// 在两个房间的相邻边界上随机选择一个位置放置门
 		int gatePosition;
@@ -140,13 +132,19 @@ public class WorldGenerator {
 					worldMap[i][j] = new EndRoom();
 				}else {
 					// 随机选择一种房间类型进行创建
-					try {
-						int randomIndex = random.nextInt(ROOM_TYPES.size());
-						Class<? extends BaseRoom> roomClass = ROOM_TYPES.get(randomIndex);
-						worldMap[i][j] = roomClass.getDeclaredConstructor().newInstance();
-					}catch(Exception e) {
-						// 如果创建失败，默认创建BaseRoom
+					if(ROOM_TYPES.isEmpty()) {
+						// 如果房间类型列表为空，默认创建BaseRoom
 						worldMap[i][j] = new BaseRoom();
+					}else {
+						try {
+							int randomIndex = random.nextInt(ROOM_TYPES.size());
+							Class<? extends BaseRoom> roomClass = ROOM_TYPES.get(randomIndex);
+							worldMap[i][j] = roomClass.getDeclaredConstructor().newInstance();
+						}catch(Exception e) {
+							System.err.println("Room creation failed : "+e.getMessage());
+							// 如果创建失败，默认创建BaseRoom
+							worldMap[i][j] = new BaseRoom();
+						}
 					}
 				}
 			}

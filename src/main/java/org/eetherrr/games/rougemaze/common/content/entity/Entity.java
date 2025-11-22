@@ -108,11 +108,12 @@ public class Entity extends JPanel {
 					}
 				}
 			}else if(targetBlock.getType()!=Block.BlockType.WALL) {
+				if(targetBlock.getType()==Block.BlockType.END) {
+					System.out.print("end the game");
+					RougeMaze.INSTANCE.endGame();
+				}
 				// 如果不是墙壁，则可以移动
 				updatePos(nextPosition);
-			}else if(targetBlock.getType()==Block.BlockType.END) {
-				System.out.print("end the game");
-				RougeMaze.INSTANCE.endGame();
 			}
 		}
 	}

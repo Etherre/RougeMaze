@@ -1,6 +1,5 @@
 package org.eetherrr.games.rougemaze.common.content.world.room;
 
-import org.eetherrr.games.rougemaze.common.content.entity.Player;
 import org.eetherrr.games.rougemaze.common.content.world.RoomGenerator;
 import org.eetherrr.games.rougemaze.common.content.world.base.Direction;
 import org.eetherrr.games.rougemaze.common.content.world.base.Position;
@@ -17,7 +16,6 @@ public class BaseRoom extends JPanel {
 	public final Map<Direction, BaseRoom> neighborRoom;
 	protected int row;
 	protected int column;
-	protected Player player; // 当前房间中的玩家
 	
 	public BaseRoom() {
 		this(Config.ROOM_ROWS, Config.ROOM_COLS);
@@ -123,13 +121,5 @@ public class BaseRoom extends JPanel {
 	
 	public Block getBlock(int x, int y) {
 		return blocks[x][y];
-	}
-	
-	public int getRoomRow() {
-		return row;
-	}
-	
-	public int getRoomColumn() {
-		return column;
 	}
 }

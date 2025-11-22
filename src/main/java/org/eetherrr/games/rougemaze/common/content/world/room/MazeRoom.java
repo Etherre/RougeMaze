@@ -3,13 +3,14 @@ package org.eetherrr.games.rougemaze.common.content.world.room;
 import org.eetherrr.games.rougemaze.common.content.world.RoomGenerator;
 import org.eetherrr.games.rougemaze.common.content.world.base.block.Block;
 
+import javax.swing.*;
+import java.lang.reflect.InvocationTargetException;
+
 public class MazeRoom extends BaseRoom {
 	private boolean mazeGenerated = false;
 	
 	public MazeRoom() {
 		super();
-		// 只创建基本房间，不生成迷宫
-		RoomGenerator.generateBase(blocks);
 	}
 	
 	/**
@@ -17,13 +18,24 @@ public class MazeRoom extends BaseRoom {
 	 */
 	public void generateMazeIfNeeded() {
 		if(!mazeGenerated) {
-			// 检查是否有至少两个门
-			int gateCount = countGates();
-			if(gateCount>=2) {
-				// 生成迷宫
-				RoomGenerator.generateMazeInRoom(blocks);
+			Runnable gen = ()->{
+				int gateCount = countGates();
+				// generate only if room has at least two gates (restore original threshold)
+				if(gateCount>=2) {
+					RoomGenerator.generateMazeInRoom(blocks);
+					updateBlocks();
+				}
+				mazeGenerated = true;
+			};
+			if(SwingUtilities.isEventDispatchThread()) {
+				gen.run();
+			}else {
+				try {
+					SwingUtilities.invokeAndWait(gen);
+				}catch(InterruptedException|InvocationTargetException e) {
+					gen.run();
+				}
 			}
-			mazeGenerated = true;
 		}
 	}
 	
@@ -58,5 +70,17 @@ public class MazeRoom extends BaseRoom {
 			}
 		}
 		return count;
+	}
+	
+	// 更新房间内的方块显示
+	private void updateBlocks() {
+		for(int i = 0; i<row; i++) {
+			for(int j = 0; j<column; j++) {
+				remove(i*column+j);
+				add(blocks[i][j], i*column+j);
+			}
+		}
+		revalidate();
+		repaint();
 	}
 }
