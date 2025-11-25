@@ -74,118 +74,118 @@ public class RoomGenerator {
 		// 在映射完成后，确保门旁第一格被打开以保证连通性（如果需要）
 		ensureGatesConnected(blocks);
 		// 其余的修补逻辑保留，用于避免最边缘产生双层墙
-		int lastInnerRow = rows-2;
-		int lastInnerCol = cols-2;
-		int prevRow = rows-3;
-		int prevCol = cols-3;
-		if(prevRow>=1) {
-			for(int j = 1; j<=cols-2; j++) {
-				if(blocks[lastInnerRow][j].getType()==Block.BlockType.WALL && blocks[prevRow][j].getType()==Block.BlockType.EMPTY) {
-					blocks[lastInnerRow][j] = new Block(Block.BlockType.EMPTY);
-				}
-			}
-		}
-		if(prevCol>=1) {
-			for(int i = 1; i<=rows-2; i++) {
-				if(blocks[i][lastInnerCol].getType()==Block.BlockType.WALL && blocks[i][prevCol].getType()==Block.BlockType.EMPTY) {
-					blocks[i][lastInnerCol] = new Block(Block.BlockType.EMPTY);
-				}
-			}
-		}
-		if(prevRow>=1) {
-			for(int j = 1; j<=cols-2; j++) {
-				if(blocks[prevRow][j].getType()==Block.BlockType.WALL && blocks[lastInnerRow][j].getType()==Block.BlockType.WALL) {
-					if(blocks[prevRow][j].getType()!=Block.BlockType.GATE) {
-						blocks[prevRow][j] = new Block(Block.BlockType.EMPTY);
-					}
-				}
-			}
-		}
-		if(prevCol>=1) {
-			for(int i = 1; i<=rows-2; i++) {
-				if(blocks[i][prevCol].getType()==Block.BlockType.WALL && blocks[i][lastInnerCol].getType()==Block.BlockType.WALL) {
-					if(blocks[i][prevCol].getType()!=Block.BlockType.GATE) {
-						blocks[i][prevCol] = new Block(Block.BlockType.EMPTY);
-					}
-				}
-			}
-		}
-		// 最终连通性修补
-		int startRx = -1, startRy = -1;
-		for(int i = 1; i<rows-1; i++) {
-			for(int j = 1; j<cols-1; j++) {
-				if(blocks[i][j].getType()==Block.BlockType.EMPTY) {
-					startRx = i;
-					startRy = j;
-					break;
-				}
-			}
-			if(startRx!=-1) {
-				break;
-			}
-		}
-		if(startRx!=-1) {
-			boolean[][] seen = new boolean[rows][cols];
-			java.util.ArrayDeque<int[]> dq = new java.util.ArrayDeque<>();
-			seen[startRx][startRy] = true;
-			dq.add(new int[]{startRx, startRy});
-			while(!dq.isEmpty()) {
-				int[] p = dq.poll();
-				int x = p[0], y = p[1];
-				int[][] d = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
-				for(int[] dd : d) {
-					int nx = x+dd[0], ny = y+dd[1];
-					if(nx>=1 && nx<rows-1 && ny>=1 && ny<cols-1 && !seen[nx][ny] && blocks[nx][ny].getType()==Block.BlockType.EMPTY) {
-						seen[nx][ny] = true;
-						dq.add(new int[]{nx, ny});
-					}
-				}
-			}
-			java.util.List<int[]> unreachable = new java.util.ArrayList<>();
-			for(int i = 1; i<rows-1; i++) {
-				for(int j = 1; j<cols-1; j++) {
-					if(blocks[i][j].getType()==Block.BlockType.EMPTY && !seen[i][j]) {
-						unreachable.add(new int[]{i, j});
-					}
-				}
-			}
-			for(int[] u : unreachable) {
-				int ux = u[0], uy = u[1];
-				int bestDist = Integer.MAX_VALUE;
-				int bx = -1, by = -1;
-				for(int i = 1; i<rows-1; i++) {
-					for(int j = 1; j<cols-1; j++) {
-						if(seen[i][j]) {
-							int dist = Math.abs(i-ux)+Math.abs(j-uy);
-							if(dist<bestDist) {
-								bestDist = dist;
-								bx = i;
-								by = j;
-							}
-						}
-					}
-				}
-				if(bx==-1) {
-					continue;
-				}
-				int cx = ux, cy = uy;
-				while(cx!=bx || cy!=by) {
-					if(cx<bx) {
-						cx++;
-					}else if(cx>bx) {
-						cx--;
-					}else if(cy<by) {
-						cy++;
-					}else if(cy>by) {
-						cy--;
-					}
-					if(blocks[cx][cy].getType()!=Block.BlockType.GATE) {
-						blocks[cx][cy] = new Block(Block.BlockType.EMPTY);
-					}
-					seen[cx][cy] = true;
-				}
-			}
-		}
+		//		int lastInnerRow = rows-2;
+		//		int lastInnerCol = cols-2;
+		//		int prevRow = rows-3;
+		//		int prevCol = cols-3;
+		//		if(prevRow>=1) {
+		//			for(int j = 1; j<=cols-2; j++) {
+		//				if(blocks[lastInnerRow][j].getType()==Block.BlockType.WALL && blocks[prevRow][j].getType()==Block.BlockType.EMPTY) {
+		//					blocks[lastInnerRow][j] = new Block(Block.BlockType.EMPTY);
+		//				}
+		//			}
+		//		}
+		//		if(prevCol>=1) {
+		//			for(int i = 1; i<=rows-2; i++) {
+		//				if(blocks[i][lastInnerCol].getType()==Block.BlockType.WALL && blocks[i][prevCol].getType()==Block.BlockType.EMPTY) {
+		//					blocks[i][lastInnerCol] = new Block(Block.BlockType.EMPTY);
+		//				}
+		//			}
+		//		}
+		//		if(prevRow>=1) {
+		//			for(int j = 1; j<=cols-2; j++) {
+		//				if(blocks[prevRow][j].getType()==Block.BlockType.WALL && blocks[lastInnerRow][j].getType()==Block.BlockType.WALL) {
+		//					if(blocks[prevRow][j].getType()!=Block.BlockType.GATE) {
+		//						blocks[prevRow][j] = new Block(Block.BlockType.EMPTY);
+		//					}
+		//				}
+		//			}
+		//		}
+		//		if(prevCol>=1) {
+		//			for(int i = 1; i<=rows-2; i++) {
+		//				if(blocks[i][prevCol].getType()==Block.BlockType.WALL && blocks[i][lastInnerCol].getType()==Block.BlockType.WALL) {
+		//					if(blocks[i][prevCol].getType()!=Block.BlockType.GATE) {
+		//						blocks[i][prevCol] = new Block(Block.BlockType.EMPTY);
+		//					}
+		//				}
+		//			}
+		//		}
+		//		// 最终连通性修补
+		//		int startRx = -1, startRy = -1;
+		//		for(int i = 1; i<rows-1; i++) {
+		//			for(int j = 1; j<cols-1; j++) {
+		//				if(blocks[i][j].getType()==Block.BlockType.EMPTY) {
+		//					startRx = i;
+		//					startRy = j;
+		//					break;
+		//				}
+		//			}
+		//			if(startRx!=-1) {
+		//				break;
+		//			}
+		//		}
+		//		if(startRx!=-1) {
+		//			boolean[][] seen = new boolean[rows][cols];
+		//			java.util.ArrayDeque<int[]> dq = new java.util.ArrayDeque<>();
+		//			seen[startRx][startRy] = true;
+		//			dq.add(new int[]{startRx, startRy});
+		//			while(!dq.isEmpty()) {
+		//				int[] p = dq.poll();
+		//				int x = p[0], y = p[1];
+		//				int[][] d = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
+		//				for(int[] dd : d) {
+		//					int nx = x+dd[0], ny = y+dd[1];
+		//					if(nx>=1 && nx<rows-1 && ny>=1 && ny<cols-1 && !seen[nx][ny] && blocks[nx][ny].getType()==Block.BlockType.EMPTY) {
+		//						seen[nx][ny] = true;
+		//						dq.add(new int[]{nx, ny});
+		//					}
+		//				}
+		//			}
+		//			java.util.List<int[]> unreachable = new java.util.ArrayList<>();
+		//			for(int i = 1; i<rows-1; i++) {
+		//				for(int j = 1; j<cols-1; j++) {
+		//					if(blocks[i][j].getType()==Block.BlockType.EMPTY && !seen[i][j]) {
+		//						unreachable.add(new int[]{i, j});
+		//					}
+		//				}
+		//			}
+		//			for(int[] u : unreachable) {
+		//				int ux = u[0], uy = u[1];
+		//				int bestDist = Integer.MAX_VALUE;
+		//				int bx = -1, by = -1;
+		//				for(int i = 1; i<rows-1; i++) {
+		//					for(int j = 1; j<cols-1; j++) {
+		//						if(seen[i][j]) {
+		//							int dist = Math.abs(i-ux)+Math.abs(j-uy);
+		//							if(dist<bestDist) {
+		//								bestDist = dist;
+		//								bx = i;
+		//								by = j;
+		//							}
+		//						}
+		//					}
+		//				}
+		//				if(bx==-1) {
+		//					continue;
+		//				}
+		//				int cx = ux, cy = uy;
+		//				while(cx!=bx || cy!=by) {
+		//					if(cx<bx) {
+		//						cx++;
+		//					}else if(cx>bx) {
+		//						cx--;
+		//					}else if(cy<by) {
+		//						cy++;
+		//					}else {
+		//						cy--;
+		//					}
+		//					if(blocks[cx][cy].getType()!=Block.BlockType.GATE) {
+		//						blocks[cx][cy] = new Block(Block.BlockType.EMPTY);
+		//					}
+		//					seen[cx][cy] = true;
+		//				}
+		//			}
+		//		}
 	}
 	
 	/**
@@ -275,77 +275,6 @@ public class RoomGenerator {
 	}
 	
 	/**
-	 * 从指定单元格开始挖刻迷宫
-	 * <p>
-	 * 使用DFS+递归回溯算法从给定的单元格坐标开始创建迷宫路径 通过打通墙壁来形成可通行的路径
-	 * </p>
-	 *
-	 * @param blocks       表示房间布局的二维方块数组
-	 * @param visitedCells 标记已访问单元格的二维布尔数组
-	 * @param cr           起始单元格的行坐标
-	 * @param cc           起始单元格的列坐标
-	 */
-	private static void carveFromCell(Block[][] blocks, boolean[][] visitedCells, int cr, int cc) {
-		int cellRows = visitedCells.length;
-		int cellCols = visitedCells[0].length;
-		if(cr<0 || cr>=cellRows || cc<0 || cc>=cellCols) {
-			return;
-		}
-		if(visitedCells[cr][cc]) {
-			return;
-		}
-		visitedCells[cr][cc] = true;
-		int br = cr*2+1;
-		int bc = cc*2+1;
-		if(blocks[br][bc].getType()!=Block.BlockType.GATE) {
-			blocks[br][bc] = new Block(Block.BlockType.EMPTY);
-		}
-		int[] dirs = new int[]{0, 1, 2, 3};
-		for(int i = dirs.length-1; i>0; i--) {
-			int idx = random.nextInt(i+1);
-			int tmp = dirs[idx];
-			dirs[idx] = dirs[i];
-			dirs[i] = tmp;
-		}
-		for(int d : dirs) {
-			int ncr = cr, ncc = cc;
-			int wallR = br, wallC = bc;
-			switch(d) {
-				case 0 -> {
-					ncr = cr-1;
-					ncc = cc;
-					wallR = br-1;
-					wallC = bc;
-				}
-				case 1 -> {
-					ncr = cr+1;
-					ncc = cc;
-					wallR = br+1;
-					wallC = bc;
-				}
-				case 2 -> {
-					ncr = cr;
-					ncc = cc-1;
-					wallR = br;
-					wallC = bc-1;
-				}
-				case 3 -> {
-					ncr = cr;
-					ncc = cc+1;
-					wallR = br;
-					wallC = bc+1;
-				}
-			}
-			if(ncr>=0 && ncr<cellRows && ncc>=0 && ncc<cellCols && !visitedCells[ncr][ncc]) {
-				if(blocks[wallR][wallC].getType()!=Block.BlockType.GATE) {
-					blocks[wallR][wallC] = new Block(Block.BlockType.EMPTY);
-				}
-				carveFromCell(blocks, visitedCells, ncr, ncc);
-			}
-		}
-	}
-	
-	/**
 	 * 查找迷宫生成的起始单元格
 	 * <p>
 	 * 优先选择与门相邻的单元格作为起始点 如果找不到合适的位置，则随机选择一个未访问的单元格
@@ -370,7 +299,7 @@ public class RoomGenerator {
 					int bc = (aj%2==1) ? aj : (aj-1>=1 ? aj-1 : aj+1);
 					int cr = (br-1)/2;
 					int cc = (bc-1)/2;
-					if(cr>=0 && cr<cellRows && cc>=0 && cc<cellCols) {
+					if(cr<cellRows && cc>=0 && cc<cellCols) {
 						return new int[]{cr, cc};
 					}
 				}

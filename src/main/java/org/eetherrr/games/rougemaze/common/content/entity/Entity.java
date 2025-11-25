@@ -114,3 +114,4 @@ public class Entity extends JPanel {
 		}
 	}
 }
+	
