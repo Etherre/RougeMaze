@@ -4,11 +4,11 @@ public class Config {
 	/**
 	 * 房间行数
 	 */
-	public static final int ROOM_ROWS = 16;
+	public static final int ROOM_ROWS = 32;
 	/**
 	 * 房间列数
 	 */
-	public static final int ROOM_COLS = 16;
+	public static final int ROOM_COLS = 32;
 	/**
 	 * 世界尺寸
 	 */

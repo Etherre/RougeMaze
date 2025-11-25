@@ -13,17 +13,30 @@ import javax.swing.*;
 import java.awt.*;
 
 public class Game extends JLayeredPane {
-	public static final Game INSTANCE = new Game();
-	private final WorldGenerator worldGenerator;
-	private final Player player;
+	private static final Integer UI_LAYER = 200; // 定义UI层
+	public static Game INSTANCE = new Game();
 	private final CardLayout cardLayout = new CardLayout();
+	private WorldGenerator worldGenerator;
+	private Player player;
 	private JPanel worldPanel;
 	private Position currentRoomPosition;
 	
 	private Game() {
+		resetGame();
+	}
+	
+	public void resetGame() {
+		// 移除旧的组件
+		removeAll();
+		// 创建新的游戏对象
 		this.player = new Player(100, 10, 10);
 		this.worldGenerator = new WorldGenerator();
+		this.currentRoomPosition = null;
+		// 初始化世界面板
 		this.initWorldPanel();
+		// 重新验证和重绘
+		revalidate();
+		repaint();
 	}
 	
 	public Player getPlayer() {
@@ -36,10 +49,13 @@ public class Game extends JLayeredPane {
 	
 	private void initWorldPanel() {
 		// 设置Game面板的首选尺寸
-		setPreferredSize(new Dimension(Config.ROOM_COLS*Block.SIZE, Config.ROOM_ROWS*Block.SIZE));
+		int roomWidth = Config.ROOM_COLS*Block.SIZE;
+		int roomHeight = Config.ROOM_ROWS*Block.SIZE;
+		setPreferredSize(new Dimension(roomWidth, roomHeight));
 		worldPanel = new JPanel(cardLayout);
+		worldPanel.setPreferredSize(new Dimension(roomWidth, roomHeight));
 		// 设置worldPanel的边界使其填满整个Game面板
-		worldPanel.setBounds(0, 0, Config.ROOM_COLS*Block.SIZE, Config.ROOM_ROWS*Block.SIZE);
+		worldPanel.setBounds(0, 0, roomWidth, roomHeight);
 		for(int i = 0; i<Config.WORLD_SIZE; i++) {
 			for(int j = 0; j<Config.WORLD_SIZE; j++) {
 				worldPanel.add(worldGenerator.worldMap[i][j], i+"-"+j);
@@ -56,6 +72,8 @@ public class Game extends JLayeredPane {
 		// 设置玩家的坐标
 		add(player, PALETTE_LAYER);
 		player.updatePos(startBlockPosition);
+		add(UI.INSTANCE, UI_LAYER);
+		UI.INSTANCE.setVisible(true);
 	}
 	
 	public void switchRoom(Position position) {

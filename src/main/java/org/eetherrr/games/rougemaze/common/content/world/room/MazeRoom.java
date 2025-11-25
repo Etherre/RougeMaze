@@ -20,7 +20,7 @@ public class MazeRoom extends BaseRoom {
 		if(!mazeGenerated) {
 			Runnable gen = ()->{
 				int gateCount = countGates();
-				// generate only if room has at least two gates (restore original threshold)
+				// 仅当房间有两个门才生成迷宫
 				if(gateCount>=2) {
 					RoomGenerator.generateMazeInRoom(blocks);
 					updateBlocks();

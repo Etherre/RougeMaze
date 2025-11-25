@@ -63,22 +63,18 @@ public class Entity extends JPanel {
 	}
 	
 	public void moveUp() {
-		System.out.println("move up");
 		moveHandler(Direction.NORTH);
 	}
 	
 	public void moveDown() {
-		System.out.println("move down");
 		moveHandler(Direction.SOUTH);
 	}
 	
 	public void moveLeft() {
-		System.out.println("move left");
 		moveHandler(Direction.WEST);
 	}
 	
 	public void moveRight() {
-		System.out.println("move right");
 		moveHandler(Direction.EAST);
 	}
 	
@@ -118,4 +114,3 @@ public class Entity extends JPanel {
 		}
 	}
 }
-	

@@ -3,16 +3,36 @@ package org.eetherrr.games.rougemaze.common.content.world;
 import org.eetherrr.games.rougemaze.common.content.world.base.block.Block;
 import org.eetherrr.games.rougemaze.common.scene.Config;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
 
+/**
+ * 房间生成器类
+ * <p>
+ * 用于生成游戏中的房间布局和迷宫结构 提供基础房间生成和复杂迷宫生成功能
+ * </p>
+ */
 public class RoomGenerator {
 	private static final Random random = new Random();
 	
-	// Debug helper: allow setting seed for deterministic generation in tests
+	/**
+	 * 调试辅助方法：设置随机种子以在测试中生成确定性的结果
+	 *
+	 * @param seed 随机数生成器的种子值
+	 */
 	public static void setRandomSeed(long seed) {
 		random.setSeed(seed);
 	}
 	
+	/**
+	 * 生成基础房间布局
+	 * <p>
+	 * 创建一个带有围墙和内部空地的基本房间结构 房间的四周边界将被设置为墙体，内部区域设置为空地
+	 * </p>
+	 *
+	 * @param blocks 表示房间布局的二维方块数组
+	 */
 	public static void generateBase(final Block[][] blocks) {
 		// 初始化顶部和底部的墙
 		for(int j = 0; j<Config.ROOM_COLS; j++) {
@@ -29,10 +49,18 @@ public class RoomGenerator {
 		}
 	}
 	
+	/**
+	 * 在房间内生成迷宫结构
+	 * <p>
+	 * 基于现有的房间结构，在其中生成复杂的迷宫布局 确保迷宫具有良好的连通性和可玩性
+	 * </p>
+	 *
+	 * @param blocks 表示房间布局的二维方块数组
+	 */
 	public static void generateMazeInRoom(final Block[][] blocks) {
 		int rows = blocks.length;
 		int cols = blocks[0].length;
-		// 初始化迷宫区域为墙（保留边界和门）
+		// 初始化：将内部格子设为墙（保留边界和门）
 		for(int i = 1; i<rows-1; i++) {
 			for(int j = 1; j<cols-1; j++) {
 				if(blocks[i][j].getType()!=Block.BlockType.GATE) {
@@ -40,27 +68,16 @@ public class RoomGenerator {
 				}
 			}
 		}
-		// 确保门与内部区域连通
+		// 使用两阶段算法：先在逻辑 cell 网格上运行 Prim（不直接修改 blocks），
+		// 然后把结果一次性映射回 blocks。这能避免中间多次修改导致的双格厚墙问题。
+		generateMazeWithPrim(blocks);
+		// 在映射完成后，确保门旁第一格被打开以保证连通性（如果需要）
 		ensureGatesConnected(blocks);
-		// We'll carve a proper maze on the odd-cell grid to avoid parity issues.
-		int cellRows = (rows-1)/2; // number of cells vertically
-		int cellCols = (cols-1)/2; // number of cells horizontally
-		boolean[][] visitedCells = new boolean[cellRows][cellCols];
-		// Find a starting cell (prefer a cell adjacent to a gate)
-		int[] startCell = findStartCell(blocks, visitedCells);
-		if(startCell==null) {
-			// fallback: choose center cell
-			startCell = new int[]{cellRows/2, cellCols/2};
-		}
-		// Carve starting from startCell using cell-based recursive backtracking
-		carveFromCell(blocks, visitedCells, startCell[0], startCell[1]);
-		// Post-process: if the last inner row/column (adjacent to outer border) remains walls
-		// while the cell next to them is empty, open them to avoid double-thick walls on south/east.
+		// 其余的修补逻辑保留，用于避免最边缘产生双层墙
 		int lastInnerRow = rows-2;
 		int lastInnerCol = cols-2;
 		int prevRow = rows-3;
 		int prevCol = cols-3;
-		// Open horizontal (south) inner row where appropriate
 		if(prevRow>=1) {
 			for(int j = 1; j<=cols-2; j++) {
 				if(blocks[lastInnerRow][j].getType()==Block.BlockType.WALL && blocks[prevRow][j].getType()==Block.BlockType.EMPTY) {
@@ -68,7 +85,6 @@ public class RoomGenerator {
 				}
 			}
 		}
-		// Open vertical (east) inner column where appropriate
 		if(prevCol>=1) {
 			for(int i = 1; i<=rows-2; i++) {
 				if(blocks[i][lastInnerCol].getType()==Block.BlockType.WALL && blocks[i][prevCol].getType()==Block.BlockType.EMPTY) {
@@ -76,7 +92,6 @@ public class RoomGenerator {
 				}
 			}
 		}
-		// Additional fix: if both prev and lastInner are WALL, open prev (closer to center) to ensure at least one empty
 		if(prevRow>=1) {
 			for(int j = 1; j<=cols-2; j++) {
 				if(blocks[prevRow][j].getType()==Block.BlockType.WALL && blocks[lastInnerRow][j].getType()==Block.BlockType.WALL) {
@@ -95,8 +110,7 @@ public class RoomGenerator {
 				}
 			}
 		}
-		// Final connectivity pass: ensure all EMPTY cells are mutually reachable. If an EMPTY cell is unreachable,
-		// carve a simple Manhattan path to the closest reached EMPTY cell (turn walls into EMPTY) to fix isolated cells.
+		// 最终连通性修补
 		int startRx = -1, startRy = -1;
 		for(int i = 1; i<rows-1; i++) {
 			for(int j = 1; j<cols-1; j++) {
@@ -127,7 +141,6 @@ public class RoomGenerator {
 					}
 				}
 			}
-			// collect unreachable empties
 			java.util.List<int[]> unreachable = new java.util.ArrayList<>();
 			for(int i = 1; i<rows-1; i++) {
 				for(int j = 1; j<cols-1; j++) {
@@ -138,7 +151,6 @@ public class RoomGenerator {
 			}
 			for(int[] u : unreachable) {
 				int ux = u[0], uy = u[1];
-				// find nearest reached cell by Manhattan distance
 				int bestDist = Integer.MAX_VALUE;
 				int bx = -1, by = -1;
 				for(int i = 1; i<rows-1; i++) {
@@ -156,7 +168,6 @@ public class RoomGenerator {
 				if(bx==-1) {
 					continue;
 				}
-				// carve a simple Manhattan path from (ux,uy) to (bx,by)
 				int cx = ux, cy = uy;
 				while(cx!=bx || cy!=by) {
 					if(cx<bx) {
@@ -177,7 +188,103 @@ public class RoomGenerator {
 		}
 	}
 	
-	// Map cell coords (cr,cc) to block coords: br = cr*2+1, bc = cc*2+1
+	/**
+	 * 使用随机Prim算法（两阶段实现：逻辑生成 -> 一次性映射回 blocks）
+	 */
+	private static void generateMazeWithPrim(Block[][] blocks) {
+		int rows = blocks.length;
+		int cols = blocks[0].length;
+		int cellRows = (rows-1)/2;
+		int cellCols = (cols-1)/2;
+		// 逻辑 visited 表示单元格是否已加入迷宫
+		boolean[][] visited = new boolean[cellRows][cellCols];
+		// 存放已打开的墙（在映射阶段会应用到 blocks）
+		List<int[]> openedWalls = new ArrayList<>();
+		// frontier 表：每项 int[]{wallR, wallC, targetCR, targetCC}
+		List<int[]> frontier = new ArrayList<>();
+		// 选择起点单元格（优先靠近门）
+		int[] startCell = findStartCell(blocks, new boolean[cellRows][cellCols]);
+		if(startCell==null) {
+			startCell = new int[]{cellRows/2, cellCols/2};
+		}
+		int sr = startCell[0], sc = startCell[1];
+		visited[sr][sc] = true;
+		int br = sr*2+1, bc = sc*2+1;
+		// 将起点的周围墙加入 frontier（逻辑上）
+		if(sr-1>=0) {
+			frontier.add(new int[]{br-1, bc, sr-1, sc});
+		}
+		if(sr+1<cellRows) {
+			frontier.add(new int[]{br+1, bc, sr+1, sc});
+		}
+		if(sc-1>=0) {
+			frontier.add(new int[]{br, bc-1, sr, sc-1});
+		}
+		if(sc+1<cellCols) {
+			frontier.add(new int[]{br, bc+1, sr, sc+1});
+		}
+		// 随机 Prim 主循环（仅在逻辑结构上操作）
+		while(!frontier.isEmpty()) {
+			int idx = random.nextInt(frontier.size());
+			int[] w = frontier.remove(idx);
+			int wallR = w[0], wallC = w[1], tr = w[2], tc = w[3];
+			int tbr = tr*2+1, tbc = tc*2+1;
+			if(!visited[tr][tc]) {
+				// 标记墙为打开（记录以便后续映射），并把目标单元格标记为已访问
+				openedWalls.add(new int[]{wallR, wallC});
+				visited[tr][tc] = true;
+				// 把目标单元格周围的墙加入 frontier
+				if(tr-1>=0) {
+					frontier.add(new int[]{tbr-1, tbc, tr-1, tc});
+				}
+				if(tr+1<cellRows) {
+					frontier.add(new int[]{tbr+1, tbc, tr+1, tc});
+				}
+				if(tc-1>=0) {
+					frontier.add(new int[]{tbr, tbc-1, tr, tc-1});
+				}
+				if(tc+1<cellCols) {
+					frontier.add(new int[]{tbr, tbc+1, tr, tc+1});
+				}
+			}
+		}
+		// 映射阶段：重置内部为墙（保留门），然后把 visited 单元格和 openedWalls 写回 blocks
+		for(int i = 1; i<rows-1; i++) {
+			for(int j = 1; j<cols-1; j++) {
+				if(blocks[i][j].getType()!=Block.BlockType.GATE) {
+					blocks[i][j] = new Block(Block.BlockType.WALL);
+				}
+			}
+		}
+		for(int r = 0; r<cellRows; r++) {
+			for(int c = 0; c<cellCols; c++) {
+				if(visited[r][c]) {
+					int cellR = r*2+1, cellC = c*2+1;
+					if(blocks[cellR][cellC].getType()!=Block.BlockType.GATE) {
+						blocks[cellR][cellC] = new Block(Block.BlockType.EMPTY);
+					}
+				}
+			}
+		}
+		for(int[] w : openedWalls) {
+			int wr = w[0], wc = w[1];
+			if(blocks[wr][wc].getType()!=Block.BlockType.GATE) {
+				blocks[wr][wc] = new Block(Block.BlockType.EMPTY);
+			}
+		}
+	}
+	
+	/**
+	 * 从指定单元格开始挖刻迷宫
+	 * <p>
+	 * 使用DFS+递归回溯算法从给定的单元格坐标开始创建迷宫路径 通过打通墙壁来形成可通行的路径
+	 * </p>
+	 *
+	 * @param blocks       表示房间布局的二维方块数组
+	 * @param visitedCells 标记已访问单元格的二维布尔数组
+	 * @param cr           起始单元格的行坐标
+	 * @param cc           起始单元格的列坐标
+	 */
 	private static void carveFromCell(Block[][] blocks, boolean[][] visitedCells, int cr, int cc) {
 		int cellRows = visitedCells.length;
 		int cellCols = visitedCells[0].length;
@@ -190,11 +297,9 @@ public class RoomGenerator {
 		visitedCells[cr][cc] = true;
 		int br = cr*2+1;
 		int bc = cc*2+1;
-		// carve the cell center
 		if(blocks[br][bc].getType()!=Block.BlockType.GATE) {
 			blocks[br][bc] = new Block(Block.BlockType.EMPTY);
 		}
-		// randomized directions
 		int[] dirs = new int[]{0, 1, 2, 3};
 		for(int i = dirs.length-1; i>0; i--) {
 			int idx = random.nextInt(i+1);
@@ -211,51 +316,56 @@ public class RoomGenerator {
 					ncc = cc;
 					wallR = br-1;
 					wallC = bc;
-				} // NORTH
+				}
 				case 1 -> {
 					ncr = cr+1;
 					ncc = cc;
 					wallR = br+1;
 					wallC = bc;
-				} // SOUTH
+				}
 				case 2 -> {
 					ncr = cr;
 					ncc = cc-1;
 					wallR = br;
 					wallC = bc-1;
-				} // WEST
+				}
 				case 3 -> {
 					ncr = cr;
 					ncc = cc+1;
 					wallR = br;
 					wallC = bc+1;
-				} // EAST
+				}
 			}
 			if(ncr>=0 && ncr<cellRows && ncc>=0 && ncc<cellCols && !visitedCells[ncr][ncc]) {
-				// carve wall between
 				if(blocks[wallR][wallC].getType()!=Block.BlockType.GATE) {
 					blocks[wallR][wallC] = new Block(Block.BlockType.EMPTY);
 				}
-				// recurse
 				carveFromCell(blocks, visitedCells, ncr, ncc);
 			}
 		}
 	}
 	
-	// choose a start cell; prefer cells whose center is adjacent to a gate (already opened by ensureGatesConnected)
+	/**
+	 * 查找迷宫生成的起始单元格
+	 * <p>
+	 * 优先选择与门相邻的单元格作为起始点 如果找不到合适的位置，则随机选择一个未访问的单元格
+	 * </p>
+	 *
+	 * @param blocks       表示房间布局的二维方块数组
+	 * @param visitedCells 标记已访问单元格的二维布尔数组
+	 *
+	 * @return 包含起始单元格行列坐标的整数数组，格式为 [行, 列]
+	 */
 	private static int[] findStartCell(Block[][] blocks, boolean[][] visitedCells) {
 		int rows = blocks.length;
 		int cols = blocks[0].length;
 		int cellRows = visitedCells.length;
 		int cellCols = visitedCells[0].length;
-		// check cells adjacent to gates
 		for(int i = 0; i<rows; i++) {
 			for(int j = 0; j<cols; j++) {
 				if(blocks[i][j].getType()==Block.BlockType.GATE) {
-					// adjacent inside
 					int ai = i==0 ? 1 : (i==rows-1 ? rows-2 : i);
 					int aj = j==0 ? 1 : (j==cols-1 ? cols-2 : j);
-					// snap to nearest odd (cell center)
 					int br = (ai%2==1) ? ai : (ai-1>=1 ? ai-1 : ai+1);
 					int bc = (aj%2==1) ? aj : (aj-1>=1 ? aj-1 : aj+1);
 					int cr = (br-1)/2;
@@ -266,52 +376,55 @@ public class RoomGenerator {
 				}
 			}
 		}
-		// otherwise pick random cell
 		int attempts = 200;
 		for(int a = 0; a<attempts; a++) {
 			int cr = random.nextInt(cellRows);
 			int cc = random.nextInt(cellCols);
-			if (!visitedCells[cr][cc]) {
+			if(!visitedCells[cr][cc]) {
 				return new int[]{cr, cc};
 			}
 		}
 		return null;
 	}
 	
+	/**
+	 * 确保门与内部区域连通
+	 * <p>
+	 * 检查房间四周的门是否与内部区域正确连接 如果门旁边是墙壁，则将其打通以确保玩家可以进入
+	 * </p>
+	 *
+	 * @param blocks 表示房间布局的二维方块数组
+	 */
 	// 确保门与内部区域连通（仅打开门旁第一格）
 	private static void ensureGatesConnected(Block[][] blocks) {
 		int rows = blocks.length;
 		int cols = blocks[0].length;
-		
 		// 处理水平方向的门（北墙和南墙）
-		for (int j = 1; j < cols-1; j++) {
+		for(int j = 1; j<cols-1; j++) {
 			// 北墙门（第一行）
-			if (blocks[0][j].getType() == Block.BlockType.GATE) {
-				if (blocks[1][j].getType() == Block.BlockType.WALL) {
+			if(blocks[0][j].getType()==Block.BlockType.GATE) {
+				if(blocks[1][j].getType()==Block.BlockType.WALL) {
 					blocks[1][j] = new Block(Block.BlockType.EMPTY);
 				}
 			}
-			
 			// 南墙门（最后一行）
-			if (blocks[rows-1][j].getType() == Block.BlockType.GATE) {
-				if (blocks[rows-2][j].getType() == Block.BlockType.WALL) {
+			if(blocks[rows-1][j].getType()==Block.BlockType.GATE) {
+				if(blocks[rows-2][j].getType()==Block.BlockType.WALL) {
 					blocks[rows-2][j] = new Block(Block.BlockType.EMPTY);
 				}
 			}
 		}
-		
 		// 处理垂直方向的门（西墙和东墙）
-		for (int i = 1; i < rows-1; i++) {
+		for(int i = 1; i<rows-1; i++) {
 			// 西墙门（第一列）
-			if (blocks[i][0].getType() == Block.BlockType.GATE) {
-				if (blocks[i][1].getType() == Block.BlockType.WALL) {
+			if(blocks[i][0].getType()==Block.BlockType.GATE) {
+				if(blocks[i][1].getType()==Block.BlockType.WALL) {
 					blocks[i][1] = new Block(Block.BlockType.EMPTY);
 				}
 			}
-			
 			// 东墙门（最后一列）
-			if (blocks[i][cols-1].getType() == Block.BlockType.GATE) {
-				if (blocks[i][cols-2].getType() == Block.BlockType.WALL) {
+			if(blocks[i][cols-1].getType()==Block.BlockType.GATE) {
+				if(blocks[i][cols-2].getType()==Block.BlockType.WALL) {
 					blocks[i][cols-2] = new Block(Block.BlockType.EMPTY);
 				}
 			}
